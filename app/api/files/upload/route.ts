@@ -5,6 +5,8 @@ import { z } from 'zod';
 import pdf from 'pdf-parse';
 import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
+import { db } from '@/db';
+import { chunksTable, filesTable } from '@/db/schema';
 
 async function saveFile(file: File) {
   const fileUploadId = crypto.randomUUID();
@@ -35,8 +37,6 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get('file');
 
-  console.log(file);
-
   const parsedFile = fileSchema.safeParse(file);
 
   if (!parsedFile.success) {
@@ -56,12 +56,21 @@ export async function POST(request: Request) {
       model: openai.embedding('text-embedding-3-small'),
       values: chunkedContent.map((chunk) => chunk.pageContent),
     });
-    // fileUploadId = id;
-    // const fileUpload = await db.insert(fileUploads).values({
-    //   id: id,
-    //   filename: filename,
-    //   path: path,
-    // });
+    const fileUpload = await db.insert(filesTable).values({
+      id: id,
+      name: filename,
+      path: path,
+      userId: 'f013db28-21db-4619-83c4-3152b1fdf446',
+    });
+
+    const chunks = await db.insert(chunksTable).values(
+      chunkedContent.map((chunk) => ({
+        fileId: id,
+        content: chunk.pageContent,
+        embedding: embeddings[chunkedContent.indexOf(chunk)],
+      }))
+    );
+
     return NextResponse.json({
       id,
       filename,
