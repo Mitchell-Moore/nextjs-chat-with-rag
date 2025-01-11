@@ -1,10 +1,11 @@
 import {
+  index,
   pgTable,
-  real,
   text,
   timestamp,
   uuid,
   varchar,
+  vector,
 } from 'drizzle-orm/pg-core';
 
 export const usersTable = pgTable('users', {
@@ -37,10 +38,19 @@ export const messagesTable = pgTable('messages', {
   createdAt: timestamp('created_at').defaultNow(),
 });
 
-export const chunksTable = pgTable('chunks', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  fileId: uuid('file_id').references(() => filesTable.id),
-  content: text('content').notNull(),
-  embedding: real('embedding').array().notNull(),
-  createdAt: timestamp('created_at').defaultNow(),
-});
+export const chunksTable = pgTable(
+  'chunks',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    fileId: uuid('file_id').references(() => filesTable.id),
+    content: text('content').notNull(),
+    embedding: vector('embedding', { dimensions: 1536 }),
+    createdAt: timestamp('created_at').defaultNow(),
+  },
+  (table) => ({
+    embeddingIndex: index('embeddingIndex').using(
+      'hnsw',
+      table.embedding.op('vector_cosine_ops')
+    ),
+  })
+);
