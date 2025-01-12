@@ -6,7 +6,8 @@ import pdf from 'pdf-parse';
 import { openai } from '@ai-sdk/openai';
 import { embedMany } from 'ai';
 import { db } from '@/db';
-import { chunksTable, filesTable } from '@/db/schema';
+import { chatsTable, chunksTable, filesTable } from '@/db/schema';
+import { redirect } from 'next/navigation';
 
 async function saveFile(file: File) {
   const fileUploadId = crypto.randomUUID();
@@ -71,12 +72,15 @@ export async function POST(request: Request) {
       }))
     );
 
-    return NextResponse.json({
-      id,
-      filename,
-      path,
-      embeddings,
-    });
+    const chats = await db
+      .insert(chatsTable)
+      .values({
+        userId: 'f013db28-21db-4619-83c4-3152b1fdf446',
+      })
+      .returning();
+
+    const chatId = chats[0].id;
+    redirect(`/chat/${chatId}`);
   } catch (error) {
     console.error('Error saving the file:', error);
     return NextResponse.json(
