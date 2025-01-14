@@ -37,9 +37,11 @@ export default function ChatPage() {
   const submitMessage = async (
     message: Omit<Message, 'id' | 'createdAt' | 'chatId'>
   ) => {
+    const messages = chat?.messages ?? [];
+    messages.push(message);
     const response = await fetch(`/api/chat/${id}`, {
       method: 'POST',
-      body: JSON.stringify({ ...message }),
+      body: JSON.stringify({ messages }),
     });
     const messageResponse: Message = await response.json();
     append(messageResponse);
